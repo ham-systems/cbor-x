@@ -635,8 +635,14 @@ suite('CBOR basic tests', function(){
 	test('bad input', function() {
 		let badInput = Buffer.from('7b2273657269616c6e6f223a2265343a30222c226970223a223139322e3136382e312e3335222c226b6579223a226770735f736563726574227d', 'hex');
 		assert.throws(function(){ decode(badInput) }) // should throw, not crash
-	})
-})
+	});
+
+	test('bad input large', function() {
+		let badInput = Buffer.from('9affffffff', 'hex');
+		assert.throws(function(){ decode(badInput) }) // should throw, not crash
+	});
+});
+
 suite('CBOR performance tests', function(){
 	test('performance JSON.parse', function() {
 		var data = sampleData

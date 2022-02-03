@@ -317,18 +317,38 @@ export function read() {
 			}
 			if (srcStringEnd == 0 && srcEnd < 140 && token < 32) {
 				// for small blocks, avoiding the overhead of the extract call is helpful
+				if(token > srcEnd) {
+					let error = new Error('Length '+token+' is greater than source end ('+srcEnd+')');
+					error.incomplete = true;
+					throw error;
+				}
+					
 				let string = token < 16 ? shortStringInJS(token) : longStringInJS(token)
 				if (string != null)
 					return string
 			}
 			return readFixedString(token)
 		case 4: // array
+			if(token > srcEnd) {
+				let error = new Error('Length '+token+' is greater than source end ('+srcEnd+')');
+				error.incomplete = true;
+				throw error;
+			}
+				
+
 			let array = new Array(token)
 		  //if (currentDecoder.keyMap) for (let i = 0; i < token; i++) array[i] = currentDecoder.decodeKey(read())	
 			//else 
 			for (let i = 0; i < token; i++) array[i] = read()
 			return array
 		case 5: // map
+			if(token > srcEnd)
+			{
+				let error = new Error('Length '+token+' is greater than source end ('+srcEnd+')');
+				error.incomplete = true;
+				throw error;
+			}
+
 			if (currentDecoder.mapsAsObjects) {
 				let object = {}
 				if (currentDecoder.keyMap) for (let i = 0; i < token; i++) object[currentDecoder.decodeKey(read())] = read()
@@ -562,6 +582,7 @@ function readStringJS(length) {
 
 	return result
 }
+
 let fromCharCode = String.fromCharCode
 function longStringInJS(length) {
 	let start = position
@@ -570,150 +591,18 @@ function longStringInJS(length) {
 		const byte = src[position++];
 		if ((byte & 0x80) > 0) {
 			position = start
-    			return
-    		}
-    		bytes[i] = byte
-    	}
-    	return fromCharCode.apply(String, bytes)
-}
-function shortStringInJS(length) {
-	if (length < 4) {
-		if (length < 2) {
-			if (length === 0)
-				return ''
-			else {
-				let a = src[position++]
-				if ((a & 0x80) > 1) {
-					position -= 1
-					return
-				}
-				return fromCharCode(a)
-			}
-		} else {
-			let a = src[position++]
-			let b = src[position++]
-			if ((a & 0x80) > 0 || (b & 0x80) > 0) {
-				position -= 2
-				return
-			}
-			if (length < 3)
-				return fromCharCode(a, b)
-			let c = src[position++]
-			if ((c & 0x80) > 0) {
-				position -= 3
-				return
-			}
-			return fromCharCode(a, b, c)
-		}
-	} else {
-		let a = src[position++]
-		let b = src[position++]
-		let c = src[position++]
-		let d = src[position++]
-		if ((a & 0x80) > 0 || (b & 0x80) > 0 || (c & 0x80) > 0 || (d & 0x80) > 0) {
-			position -= 4
 			return
 		}
-		if (length < 6) {
-			if (length === 4)
-				return fromCharCode(a, b, c, d)
-			else {
-				let e = src[position++]
-				if ((e & 0x80) > 0) {
-					position -= 5
-					return
-				}
-				return fromCharCode(a, b, c, d, e)
-			}
-		} else if (length < 8) {
-			let e = src[position++]
-			let f = src[position++]
-			if ((e & 0x80) > 0 || (f & 0x80) > 0) {
-				position -= 6
-				return
-			}
-			if (length < 7)
-				return fromCharCode(a, b, c, d, e, f)
-			let g = src[position++]
-			if ((g & 0x80) > 0) {
-				position -= 7
-				return
-			}
-			return fromCharCode(a, b, c, d, e, f, g)
-		} else {
-			let e = src[position++]
-			let f = src[position++]
-			let g = src[position++]
-			let h = src[position++]
-			if ((e & 0x80) > 0 || (f & 0x80) > 0 || (g & 0x80) > 0 || (h & 0x80) > 0) {
-				position -= 8
-				return
-			}
-			if (length < 10) {
-				if (length === 8)
-					return fromCharCode(a, b, c, d, e, f, g, h)
-				else {
-					let i = src[position++]
-					if ((i & 0x80) > 0) {
-						position -= 9
-						return
-					}
-					return fromCharCode(a, b, c, d, e, f, g, h, i)
-				}
-			} else if (length < 12) {
-				let i = src[position++]
-				let j = src[position++]
-				if ((i & 0x80) > 0 || (j & 0x80) > 0) {
-					position -= 10
-					return
-				}
-				if (length < 11)
-					return fromCharCode(a, b, c, d, e, f, g, h, i, j)
-				let k = src[position++]
-				if ((k & 0x80) > 0) {
-					position -= 11
-					return
-				}
-				return fromCharCode(a, b, c, d, e, f, g, h, i, j, k)
-			} else {
-				let i = src[position++]
-				let j = src[position++]
-				let k = src[position++]
-				let l = src[position++]
-				if ((i & 0x80) > 0 || (j & 0x80) > 0 || (k & 0x80) > 0 || (l & 0x80) > 0) {
-					position -= 12
-					return
-				}
-				if (length < 14) {
-					if (length === 12)
-						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l)
-					else {
-						let m = src[position++]
-						if ((m & 0x80) > 0) {
-							position -= 13
-							return
-						}
-						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m)
-					}
-				} else {
-					let m = src[position++]
-					let n = src[position++]
-					if ((m & 0x80) > 0 || (n & 0x80) > 0) {
-						position -= 14
-						return
-					}
-					if (length < 15)
-						return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m, n)
-					let o = src[position++]
-					if ((o & 0x80) > 0) {
-						position -= 15
-						return
-					}
-					return fromCharCode(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
-				}
-			}
-		}
-	}
+    	bytes[i] = byte
+    }
+    return fromCharCode.apply(String, bytes)
+}
+
+function shortStringInJS(length) {
+	let bytes = new Array(length)
+	for(let i=0; i < length; ++i)
+		bytes[i] = src[position++];
+	return fromCharCode.apply(String, bytes)
 }
 
 function readBin(length) {
@@ -721,14 +610,6 @@ function readBin(length) {
 		// specifically use the copying slice (not the node one)
 		Uint8Array.prototype.slice.call(src, position, position += length) :
 		src.subarray(position, position += length)
-}
-function readExt(length) {
-	let type = src[position++]
-	if (currentExtensions[type]) {
-		return currentExtensions[type](src.subarray(position, position += length))
-	}
-	else
-		throw new Error('Unknown extension type ' + type)
 }
 
 function getFloat16() {
@@ -742,70 +623,6 @@ function getFloat16() {
 	else if (exp != 31) val = Math.exp(mant + 1024, exp - 25)
 	else val = mant == 0 ? Infinity : NaN
 	return half & 0x8000 ? -val : val
-}
-
-let keyCache = new Array(4096)
-function readKey() {
-	let length = src[position++]
-	if (length >= 0x60 && length < 0x78) {
-		// fixstr, potentially use key cache
-		length = length - 0x60
-		if (srcStringEnd >= position) // if it has been extracted, must use it (and faster anyway)
-			return srcString.slice(position - srcStringStart, (position += length) - srcStringStart)
-		else if (!(srcStringEnd == 0 && srcEnd < 180))
-			return readFixedString(length)
-	} else { // not cacheable, go back and do a standard read
-		position--
-		return read()
-	}
-	let key = ((length << 5) ^ (length > 1 ? dataView.getUint16(position) : length > 0 ? src[position] : 0)) & 0xfff
-	let entry = keyCache[key]
-	let checkPosition = position
-	let end = position + length - 3
-	let chunk
-	let i = 0
-	if (entry && entry.bytes == length) {
-		while (checkPosition < end) {
-			chunk = dataView.getUint32(checkPosition)
-			if (chunk != entry[i++]) {
-				checkPosition = 0x70000000
-				break
-			}
-			checkPosition += 4
-		}
-		end += 3
-		while (checkPosition < end) {
-			chunk = src[checkPosition++]
-			if (chunk != entry[i++]) {
-				checkPosition = 0x70000000
-				break
-			}
-		}
-		if (checkPosition === end) {
-			position = checkPosition
-			return entry.string
-		}
-		end -= 3
-		checkPosition = position
-	}
-	entry = []
-	keyCache[key] = entry
-	entry.bytes = length
-	while (checkPosition < end) {
-		chunk = dataView.getUint32(checkPosition)
-		entry.push(chunk)
-		checkPosition += 4
-	}
-	end += 3
-	while (checkPosition < end) {
-		chunk = src[checkPosition++]
-		entry.push(chunk)
-	}
-	// for small blocks, avoiding the overhead of the extract call is helpful
-	let string = length < 16 ? shortStringInJS(length) : longStringInJS(length)
-	if (string != null)
-		return entry.string = string
-	return entry.string = readFixedString(length)
 }
 
 export class Tag {
