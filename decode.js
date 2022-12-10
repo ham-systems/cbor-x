@@ -489,6 +489,11 @@ let readFixedString = readStringJS
 let readString8 = readStringJS
 let readString16 = readStringJS
 let readString32 = readStringJS
+const bytesDecoder = new TextDecoder('UTF-8');
+function bytesToString(bytes) {
+	const array = new Uint8Array(bytes);
+	return bytesDecoder.decode(array);
+}
 
 export let isNativeAccelerationEnabled = false
 export function setExtractor(extractStrings) {
@@ -571,19 +576,18 @@ function readStringJS(length) {
 		}
 
 		if (units.length >= 0x1000) {
-			result += fromCharCode.apply(String, units)
+			result += bytesToString(units)
 			units.length = 0
 		}
 	}
 
 	if (units.length > 0) {
-		result += fromCharCode.apply(String, units)
+		result += bytesToString(units)
 	}
 
 	return result
 }
 
-let fromCharCode = String.fromCharCode
 function longStringInJS(length) {
 	let start = position
 	let bytes = new Array(length)
@@ -595,14 +599,14 @@ function longStringInJS(length) {
 		}
     	bytes[i] = byte
     }
-    return fromCharCode.apply(String, bytes)
+    return bytesToString(bytes)
 }
 
 function shortStringInJS(length) {
 	let bytes = new Array(length)
 	for(let i=0; i < length; ++i)
 		bytes[i] = src[position++];
-	return fromCharCode.apply(String, bytes)
+	return bytesToString(bytes)
 }
 
 function readBin(length) {
